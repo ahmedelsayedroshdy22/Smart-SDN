@@ -1,4 +1,5 @@
-﻿cd "C:\Util\CCD"
+﻿$Global:currentVersion = "4.3"
+cd "C:\Util\CCD"
 ###################################################################################################################################################################################################################################################################################
 # Load Windows Forms and drawing assemblies
 Add-Type -AssemblyName System.Windows.Forms
@@ -16,7 +17,7 @@ Add-Type -AssemblyName System.Drawing
      $Global:ipforAPI
      $Global:AlarmID
      $Global:Test
-     $Global:currentVersion = "4.3"
+     
      
 ############################################################################################
 
