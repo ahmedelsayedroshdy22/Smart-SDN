@@ -28,14 +28,18 @@ jobs:
         $firstLine = (Get-Content "SDN-Tool-2026.ps1" -First 1)
         if ($firstLine -match '\$Global:currentVersion\s*=\s*"(.*)"') {
             $ver = $matches[1].Trim()
+            Write-Host "Detected version: $ver"
+            echo "version=$ver" >> $env:GITHUB_OUTPUT
         } else {
             Write-Error "Could not find version number in first line!"
+            exit 1
         }
-        Write-Host "Detected version: $ver"
-        echo "version=$ver" >> $env:GITHUB_OUTPUT
     
     - name: Update Version.txt
-      run: echo ${{ steps.version.outputs.version }} > Version.txt
+      shell: powershell
+      run: |
+        $version = "v${{ steps.version.outputs.version }}"
+        Set-Content -Path "Version.txt" -Value $version -NoNewline
     
     - name: Commit Version.txt update
       run: |
