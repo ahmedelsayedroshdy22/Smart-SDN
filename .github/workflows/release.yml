@@ -8,14 +8,19 @@ on:
       - "SDN-Tool-2026.ps1"
       - ".github/workflows/release.yml"
 
+permissions:
+  contents: write  # Required for pushing commits and creating releases
+
 jobs:
   build-release:
     runs-on: windows-latest
-
+    
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Read version from script
       id: version
       shell: powershell
@@ -28,26 +33,26 @@ jobs:
         }
         Write-Host "Detected version: $ver"
         echo "version=$ver" >> $env:GITHUB_OUTPUT
-
+    
     - name: Update Version.txt
       run: echo ${{ steps.version.outputs.version }} > Version.txt
-
+    
     - name: Commit Version.txt update
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
         git add Version.txt
         git diff --cached --quiet || git commit -m "Update Version.txt to v${{ steps.version.outputs.version }}"
-        git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} HEAD:main
-
+        git push
+    
     - name: Install ps2exe
       shell: powershell
       run: Install-Module ps2exe -Force -Scope CurrentUser
-
+    
     - name: Convert PS1 to EXE
       shell: powershell
       run: ps2exe.ps1 .\SDN-Tool-2026.ps1 .\SDN-Tool.exe -noConsole
-
+    
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
