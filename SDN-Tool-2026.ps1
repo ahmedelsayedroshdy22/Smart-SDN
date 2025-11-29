@@ -1785,7 +1785,7 @@ $form.Controls.Remove($UserName_Password)
 # Configuration - UPDATE THESE
 #$Global:currentVersion = "1.0"  # Your current app version
 $githubUser = "ahmedelsayedroshdy22"
-$githubRepo = "SDN-Tool"
+$githubRepo = "Smart-SDN"
 $exeFileName = "SDN-Tool.exe"
 
 # URLs (auto-generated)
