@@ -1,0 +1,58 @@
+name: Build and Release SDN-Tool
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "SDN-Tool-2026.ps1"   # your script filename
+      - ".github/workflows/release.yml"
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Read version from script
+      id: version
+      shell: powershell
+      run: |
+        $firstLine = (Get-Content "SDN-Tool-2026.ps1" -First 1)
+        if ($firstLine -match "Version:\s*(.*)") {
+            $ver = $matches[1].Trim()
+        } else {
+            Write-Error "Could not find version number in first line!"
+        }
+        Write-Host "Detected version: $ver"
+        echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+    - name: Update Version.txt
+      run: echo ${{ steps.version.outputs.version }} > Version.txt
+
+    - name: Commit Version.txt update
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add Version.txt
+        git commit -m "Update Version.txt to v${{ steps.version.outputs.version }}" || echo "No changes"
+        git push
+
+    - name: Install ps2exe
+      shell: powershell
+      run: Install-Module ps2exe -Force -Scope CurrentUser
+
+    - name: Convert PS1 to EXE
+      shell: powershell
+      run: ps2exe.ps1 .\SDN-Tool-2026.ps1 .\SDN-Tool.exe -noConsole
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: SDN-Tool v${{ steps.version.outputs.version }}
+        files: SDN-Tool.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
