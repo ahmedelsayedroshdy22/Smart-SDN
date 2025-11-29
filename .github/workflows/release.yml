@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "SDN-Tool-2026.ps1"   # your script filename
+      - "SDN-Tool-2026.ps1"
       - ".github/workflows/release.yml"
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       shell: powershell
       run: |
         $firstLine = (Get-Content "SDN-Tool-2026.ps1" -First 1)
-        if ($firstLine -match "Version:\s*(.*)") {
+        if ($firstLine -match '\$Global:currentVersion\s*=\s*"(.*)"') {
             $ver = $matches[1].Trim()
         } else {
             Write-Error "Could not find version number in first line!"
@@ -37,7 +37,7 @@ jobs:
         git config user.name "github-actions"
         git config user.email "actions@github.com"
         git add Version.txt
-        git commit -m "Update Version.txt to v${{ steps.version.outputs.version }}" || echo "No changes"
+        git diff --cached --quiet || git commit -m "Update Version.txt to v${{ steps.version.outputs.version }}"
         git push
 
     - name: Install ps2exe
