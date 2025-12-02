@@ -55,7 +55,7 @@ jobs:
     
     - name: Convert PS1 to EXE
       shell: powershell
-      run: ps2exe.ps1 .\SDN-Tool-2026.ps1 .\SDN-Tool.exe -noConsole -noOutput -noError -iconFile .\icon.ico
+      run: ps2exe.ps1 .\SDN-Tool-2026.ps1 .\SDN-Tool.exe -noConsole -noOutput -noError -iconFile .\orangefruit.ico
     
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
