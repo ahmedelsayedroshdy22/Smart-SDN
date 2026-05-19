@@ -1,4 +1,4 @@
-﻿$Global:currentVersion = "5.2"
+﻿$Global:currentVersion = "5.3"
 cd "C:\Util\CCD"
 ###################################################################################################################################################################################################################################################################################
 # Load Windows Forms and drawing assemblies
@@ -1154,7 +1154,7 @@ $combobox.Font = "Arial,13pt,style=Bold"
  'Hewlett Packard','Mondelez Global Llc','Mowi Asa','Haleon Uk Trading Limited','Hapag Lloyd Ag','Heineken International Bv','Jt International Sa','Aea International Holdings Pte Ltd','Johnson And Johnson Services Inc',
  'Smiths Business Information Services Limited','Weg Ind Strias Sa','Scr-Sibelco Nv','Anglogold Ashanti','Bunge Alimentos Sa','Lisa Draexlmaier Gmbh','Arcelormittal Sa','Merck Kgaa',
  'Alter Domus Luxembourg S.  R.L.','Cognizant Oil And Gas Consulting Services Norway As','Saipem Spa','Swiss Life Investment Management Holding Ag','Rs Components Ltd',
- 'Amcor Group Gmbh','Kuoni Global Travel Services Schweiz Ag','google llc','Kion Information Mgmt Service Gmbh','Hp International Sarl','hp inc','kenvue brands llc','siemens healthineers ag','fujitsu services','envalior b.v.','singapore airlines ltd.','Philips Electronics Netherland Bv','Palfinger Ag','flowserve','ministry of business innovation and employment','Keller Management Services LLC','the goodyear tire and rubber company','kone oyj','')
+ 'Amcor Group Gmbh','Kuoni Global Travel Services Schweiz Ag','xella baustoffe gmbh','pvh corp','google llc','Kion Information Mgmt Service Gmbh','Hp International Sarl','hp inc','kenvue brands llc','siemens healthineers ag','fujitsu services','envalior b.v.','singapore airlines ltd.','Philips Electronics Netherland Bv','Palfinger Ag','flowserve','ministry of business innovation and employment','Keller Management Services LLC','the goodyear tire and rubber company','kone oyj','')
 
  
  $comboBox.Items.AddRange($customerNames)
