@@ -1,4 +1,4 @@
-﻿$Global:currentVersion = "5.5"
+﻿$Global:currentVersion = "6.0"
 cd "C:\Util\CCD"
 ###################################################################################################################################################################################################################################################################################
 # Load Windows Forms and drawing assemblies
@@ -1405,7 +1405,7 @@ $credentials = Get-Content $credentialsFile
 $username, $password = $credentials -split ","
 
 # Start plink with the dynamic username
-Start-Process powershell.exe -ArgumentList '-NoExit', "-Command", "plink.exe -ssh $username@10.57.148.4 -pw '$password' -D 2906"
+Start-Process powershell.exe -ArgumentList '-NoExit', "-Command", "plink.exe -ssh $username@10.57.148.6 -pw '$password' -D 2906"
     
     })
     
