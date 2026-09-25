@@ -1,4 +1,4 @@
-﻿$Global:currentVersion = "7.0"
+﻿$Global:currentVersion = "7.1"
 cd "C:\Util\CCD"
 ###################################################################################################################################################################################################################################################################################
 # Load Windows Forms and drawing assemblies
@@ -1149,7 +1149,7 @@ $combobox.Font = "Arial,13pt,style=Bold"
 
 
 # Add customer names to the dropdown menu
- $customerNames = @(' ','Orange Usage Interne','Autoneum Management Ag','Hoppe Holding Ag','Sita Corp. Voice',
+ $customerNames = @(' ','Orange Usage Interne','Autoneum Management Ag','Hoppe Ag','Sita Corp. Voice',
  'Wallenius Wilhelmsen Ocean As','Akzo Nobel Sourcing Bv','Basf Se','Service Public F D Ral Affaires  Trang Res','Siemens Ag','Sony Music Entertainment','Carl Zeiss Ag','Dupont Specialty Products Usa Llc',
  'Hewlett Packard','Mondelez Global Llc','Mowi Asa','Haleon Uk Trading Limited','Hapag Lloyd Ag','Heineken International Bv','Jt International Sa','Aea International Holdings Pte Ltd','Johnson And Johnson Services Inc',
  'Smiths Business Information Services Limited','Weg Ind Strias Sa','Scr-Sibelco Nv','Anglogold Ashanti','Bunge Alimentos Sa','Lisa Draexlmaier Gmbh','Arcelormittal Sa','Merck Kgaa',
