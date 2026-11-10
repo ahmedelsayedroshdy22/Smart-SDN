@@ -1,0 +1,108 @@
+# =================================
+# CONFIGURATION
+# =================================
+
+$IP           = "192.168.219.128"
+
+$ApiUser      = "Admin"
+$ApiPassword  = "Admin"
+
+$NewUser      = "Owida"
+$NewPassword  = "12345"
+
+# =================================
+# AUTHENTICATION
+# =================================
+
+$cred = "$ApiUser`:$ApiPassword"
+$cred_encoded = [Convert]::ToBase64String(
+    [Text.Encoding]::ASCII.GetBytes($cred)
+)
+
+# =================================
+# LOGGING
+# =================================
+
+$TimeStamp = Get-Date -Format "yyyyMMdd_HHmmss"
+
+$LogFolder = ".\Logs"
+New-Item -ItemType Directory -Path $LogFolder -Force | Out-Null
+
+$LogFile = "$LogFolder\$($IP)_$TimeStamp.log"
+
+# =================================
+# CLI SCRIPT
+# =================================
+
+$cliScript = @"
+configure system
+user $NewUser
+privilege Monitor
+status valid
+password-age 0
+password $NewPassword
+exit
+"@
+
+$CliFile = "$env:TEMP\user.cli"
+$cliScript | Set-Content -Path $CliFile -Encoding Ascii
+
+# =================================
+# CREATE USER
+# =================================
+
+Write-Host "Creating user $NewUser on $IP..." -ForegroundColor Cyan
+
+$CreateResult = .\curl.exe `
+    -s `
+    -k `
+    -X PUT `
+    "http://$IP/api/v1/files/cliScript/incremental" `
+    -H "Authorization: Basic $cred_encoded" `
+    -F "file=@$CliFile;type=application/octet-stream"
+
+# =================================
+# SAVE CONFIGURATION
+# =================================
+
+$SaveResult = .\curl.exe `
+    -s `
+    -k `
+    -X POST `
+    "http://$IP/api/v1/actions/saveConfiguration" `
+    -H "Authorization: Basic $cred_encoded"
+
+# =================================
+# LOG RESULTS
+# =================================
+
+@"
+=================================
+Time      : $(Get-Date)
+Device    : $IP
+User      : $NewUser
+=================================
+
+CREATE USER RESPONSE
+--------------------
+$CreateResult
+
+SAVE CONFIG RESPONSE
+--------------------
+$SaveResult
+"@ | Out-File $LogFile
+
+# =================================
+# DISPLAY RESULTS
+# =================================
+
+Write-Host ""
+Write-Host "User Creation Response:" -ForegroundColor Green
+$CreateResult
+
+Write-Host ""
+Write-Host "Save Configuration Response:" -ForegroundColor Green
+$SaveResult
+
+Write-Host ""
+Write-Host "Log File: $LogFile" -ForegroundColor Yellow
