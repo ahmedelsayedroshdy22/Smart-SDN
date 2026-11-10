@@ -1,42 +1,46 @@
-# =================================
-# CONFIGURATION
-# =================================
+# =====================================================
+# AudioCodes SBC - Create User via REST API
+# =====================================================
 
-$IP           = "192.168.219.128"
+# ----------------------------
+# User Variables
+# ----------------------------
 
-$ApiUser      = "Admin"
-$ApiPassword  = "Admin"
+$IP = "192.168.219.128"
 
-$NewUser      = "Owida"
-$NewPassword  = "12345"
+$ApiUser     = "Admin"
+$ApiPassword = "Admin"
 
-# =================================
-# AUTHENTICATION
-# =================================
+$NewUsername = "maie"
+$NewPassword = "12345"
+
+# ----------------------------
+# Authentication
+# ----------------------------
 
 $cred = "$ApiUser`:$ApiPassword"
 $cred_encoded = [Convert]::ToBase64String(
     [Text.Encoding]::ASCII.GetBytes($cred)
 )
 
-# =================================
-# LOGGING
-# =================================
+# ----------------------------
+# Logging
+# ----------------------------
 
-$TimeStamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 $LogFolder = ".\Logs"
 New-Item -ItemType Directory -Path $LogFolder -Force | Out-Null
 
-$LogFile = "$LogFolder\$($IP)_$TimeStamp.log"
+$LogFile = "$LogFolder\$($IP)_$Timestamp.log"
 
-# =================================
-# CLI SCRIPT
-# =================================
+# ----------------------------
+# Build CLI Script
+# ----------------------------
 
 $cliScript = @"
 configure system
-user $NewUser
+user $NewUsername
 privilege Monitor
 status valid
 password-age 0
@@ -44,65 +48,88 @@ password $NewPassword
 exit
 "@
 
-$CliFile = "$env:TEMP\user.cli"
+$CliFile = "$env:TEMP\AudioCodes_User.cli"
 $cliScript | Set-Content -Path $CliFile -Encoding Ascii
 
-# =================================
-# CREATE USER
-# =================================
+Write-Host ""
+Write-Host "==================================" -ForegroundColor Cyan
+Write-Host " AudioCodes User Creation Process "
+Write-Host "==================================" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "Creating user $NewUser on $IP..." -ForegroundColor Cyan
+Write-Host "Target Device : $IP"
+Write-Host "Username      : $NewUsername"
+Write-Host ""
 
-$CreateResult = .\curl.exe `
-    -s `
-    -k `
-    -X PUT `
-    "http://$IP/api/v1/files/cliScript/incremental" `
-    -H "Authorization: Basic $cred_encoded" `
-    -F "file=@$CliFile;type=application/octet-stream"
+try {
 
-# =================================
-# SAVE CONFIGURATION
-# =================================
+    # -------------------------------------
+    # Create User
+    # -------------------------------------
 
-$SaveResult = .\curl.exe `
-    -s `
-    -k `
-    -X POST `
-    "http://$IP/api/v1/actions/saveConfiguration" `
-    -H "Authorization: Basic $cred_encoded"
+    Write-Host "Creating user..." -ForegroundColor Yellow
 
-# =================================
-# LOG RESULTS
-# =================================
+    $CreateResponse = .\curl.exe `
+        -s `
+        -k `
+        -X PUT `
+        "http://$IP/api/v1/files/cliScript/incremental" `
+        -H "Authorization: Basic $cred_encoded" `
+        -F "file=@$CliFile;type=application/octet-stream"
 
-@"
-=================================
-Time      : $(Get-Date)
-Device    : $IP
-User      : $NewUser
-=================================
+    Write-Host "User creation completed." -ForegroundColor Green
 
+    # -------------------------------------
+    # Save Configuration
+    # -------------------------------------
+
+    Write-Host "Saving configuration..." -ForegroundColor Yellow
+
+    $SaveResponse = .\curl.exe `
+        -s `
+        -k `
+        -X POST `
+        "http://$IP/api/v1/actions/saveConfiguration" `
+        -H "Authorization: Basic $cred_encoded" `
+        -H "Content-Type: application/json" `
+        -d "{}"
+
+    Write-Host "Configuration save completed." -ForegroundColor Green
+
+    # -------------------------------------
+    # Write Log File
+    # -------------------------------------
+
+    @"
+====================================================
+Execution Time : $(Get-Date)
+Target Device  : $IP
+Username       : $NewUsername
+====================================================
+
+-----------------------------
 CREATE USER RESPONSE
---------------------
-$CreateResult
+-----------------------------
+$CreateResponse
 
+-----------------------------
 SAVE CONFIG RESPONSE
---------------------
-$SaveResult
+-----------------------------
+$SaveResponse
+
+====================================================
 "@ | Out-File $LogFile
 
-# =================================
-# DISPLAY RESULTS
-# =================================
+    Write-Host ""
+    Write-Host "Success" -ForegroundColor Green
+    Write-Host "Log File : $LogFile" -ForegroundColor Cyan
 
-Write-Host ""
-Write-Host "User Creation Response:" -ForegroundColor Green
-$CreateResult
+}
+catch {
 
-Write-Host ""
-Write-Host "Save Configuration Response:" -ForegroundColor Green
-$SaveResult
+    $_ | Out-File $LogFile
 
-Write-Host ""
-Write-Host "Log File: $LogFile" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "FAILED" -ForegroundColor Red
+    Write-Host $_.Exception.Message
+}
