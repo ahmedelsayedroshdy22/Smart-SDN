@@ -1,15 +1,22 @@
 # =====================================================
-# AudioCodes SBC - Create User via REST API
+# AudioCodes SBC - Bulk Create User via REST API
 # =====================================================
 
+# CSV Format:
+#
+# Device Name,IP
+# SBC01,192.168.1.10
+# SBC02,192.168.1.11
+#
+
 # ----------------------------
-# User Variables
+# Configuration
 # ----------------------------
 
-$IP = "192.168.219.128"
+$CsvFile = ".\HP_DataFinal2.csv"
 
-$ApiUser     = "Admin"
-$ApiPassword = "Admin"
+$ApiUser     = "puso7259"
+$ApiPassword = "Rw49iuMzJm"
 
 $NewUsername = "TestUserHP"
 $NewPassword = "12345"
@@ -19,26 +26,71 @@ $NewPassword = "12345"
 # ----------------------------
 
 $cred = "$ApiUser`:$ApiPassword"
+
 $cred_encoded = [Convert]::ToBase64String(
     [Text.Encoding]::ASCII.GetBytes($cred)
 )
 
 # ----------------------------
-# Logging
+# Logging Setup
 # ----------------------------
 
 $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 $LogFolder = ".\Logs"
-New-Item -ItemType Directory -Path $LogFolder -Force | Out-Null
+$ReportFile = ".\Summary_$Timestamp.csv"
 
-$LogFile = "$LogFolder\$($IP)_$Timestamp.log"
+New-Item -ItemType Directory `
+    -Path $LogFolder `
+    -Force | Out-Null
 
 # ----------------------------
-# Build CLI Script
+# Load Devices
 # ----------------------------
 
-$cliScript = @"
+$Devices = Import-Csv $CsvFile
+
+$Results = @()
+
+Write-Host ""
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host " AudioCodes Bulk User Creation"
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "Devices Found : $($Devices.Count)"
+Write-Host ""
+
+# ----------------------------
+# Process Each Device
+# ----------------------------
+
+foreach ($Device in $Devices)
+{
+    $DeviceName = $Device.'Device Name'
+    $IP         = $Device.IP
+
+    Write-Host ""
+    Write-Host "[$DeviceName] Processing $IP" -ForegroundColor Yellow
+
+    $LogFile = Join-Path `
+        $LogFolder `
+        "$DeviceName.log"
+
+    try
+    {
+        # ----------------------------
+        # Connectivity Check
+        # ----------------------------
+
+        if (-not (Test-Connection -ComputerName $IP -Count 1 -Quiet))
+        {
+            throw "Device is unreachable."
+        }
+
+        # ----------------------------
+        # Build CLI Script
+        # ----------------------------
+
+        $cliScript = @"
 configure system
 user $NewUsername
 privilege Monitor
@@ -48,88 +100,162 @@ password $NewPassword
 exit
 "@
 
-$CliFile = "$env:TEMP\AudioCodes_User.cli"
-$cliScript | Set-Content -Path $CliFile -Encoding Ascii
+        $CliFile = Join-Path `
+            $env:TEMP `
+            "$DeviceName.cli"
 
-Write-Host ""
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host " AudioCodes User Creation Process "
-Write-Host "==================================" -ForegroundColor Cyan
-Write-Host ""
+        $cliScript | Set-Content `
+            -Path $CliFile `
+            -Encoding Ascii
 
-Write-Host "Target Device : $IP"
-Write-Host "Username      : $NewUsername"
-Write-Host ""
+        # ----------------------------
+        # Create User
+        # ----------------------------
 
-try {
+        Write-Host "[$DeviceName] Creating user..." -ForegroundColor Cyan
 
-    # -------------------------------------
-    # Create User
-    # -------------------------------------
+        $CreateResponse = curl.exe `
+            -s `
+            -k `
+            -X PUT `
+            "https://$IP/api/v1/files/cliScript/incremental" `
+            -H "Authorization: Basic $cred_encoded" `
+            -F "file=@$CliFile;type=application/octet-stream"
 
-    Write-Host "Creating user..." -ForegroundColor Yellow
+        # ----------------------------
+        # Save Configuration
+        # ----------------------------
 
-    $CreateResponse = .\curl.exe `
-        -s `
-        -k `
-        -X PUT `
-        "https://$IP/api/v1/files/cliScript/incremental" `
-        -H "Authorization: Basic $cred_encoded" `
-        -F "file=@$CliFile;type=application/octet-stream"
+        Write-Host "[$DeviceName] Saving configuration..." -ForegroundColor Cyan
 
-    Write-Host "User creation completed." -ForegroundColor Green
+        $SaveResponse = curl.exe `
+            -s `
+            -k `
+            -X POST `
+            "https://$IP/api/v1/actions/saveConfiguration" `
+            -H "Authorization: Basic $cred_encoded" `
+            -H "Content-Type: application/json" `
+            -d "{}"
 
-    # -------------------------------------
-    # Save Configuration
-    # -------------------------------------
+        # ----------------------------
+        # Success Log
+        # ----------------------------
 
-    Write-Host "Saving configuration..." -ForegroundColor Yellow
-
-    $SaveResponse = .\curl.exe `
-        -s `
-        -k `
-        -X POST `
-        "https://$IP/api/v1/actions/saveConfiguration" `
-        -H "Authorization: Basic $cred_encoded" `
-        -H "Content-Type: application/json" `
-        -d "{}"
-
-    Write-Host "Configuration save completed." -ForegroundColor Green
-
-    # -------------------------------------
-    # Write Log File
-    # -------------------------------------
-
-    @"
+@"
 ====================================================
 Execution Time : $(Get-Date)
-Target Device  : $IP
+
+Device Name    : $DeviceName
+IP Address     : $IP
 Username       : $NewUsername
+
 ====================================================
 
------------------------------
+CLI PAYLOAD SENT
+====================================================
+
+$cliScript
+
+====================================================
 CREATE USER RESPONSE
------------------------------
+====================================================
+
 $CreateResponse
 
------------------------------
+====================================================
 SAVE CONFIG RESPONSE
------------------------------
+====================================================
+
 $SaveResponse
 
 ====================================================
-"@ | Out-File $LogFile
+STATUS : SUCCESS
+====================================================
 
-    Write-Host ""
-    Write-Host "Success" -ForegroundColor Green
-    Write-Host "Log File : $LogFile" -ForegroundColor Cyan
+"@ | Out-File `
+        -FilePath $LogFile `
+        -Encoding UTF8
 
+        $Results += [PSCustomObject]@{
+            DeviceName = $DeviceName
+            IP         = $IP
+            Status     = "Success"
+            Error      = ""
+            Timestamp  = Get-Date
+        }
+
+        Write-Host "[$DeviceName] SUCCESS" -ForegroundColor Green
+    }
+    catch
+    {
+        $ErrorMessage = $_.Exception.Message
+
+@"
+====================================================
+Execution Time : $(Get-Date)
+
+Device Name    : $DeviceName
+IP Address     : $IP
+Username       : $NewUsername
+
+====================================================
+CLI PAYLOAD
+====================================================
+
+$cliScript
+
+====================================================
+ERROR
+============================================$ErrorMessage
+
+====================================================
+STATUS : FAILED
+====================================================
+
+"@ | Out-File `
+        -FilePath $LogFile `
+        -Encoding UTF8
+
+        $Results += [PSCustomObject]@{
+            DeviceName = $DeviceName
+            IP         = $IP
+            Status     = "Failed"
+            Error      = $ErrorMessage
+            Timestamp  = Get-Date
+        }
+
+        Write-Host "[$DeviceName] FAILED - $ErrorMessage" -ForegroundColor Red
+    }
+    finally
+    {
+        Remove-Item `
+            $CliFile `
+            -Force `
+            -ErrorAction SilentlyContinue
+    }
 }
-catch {
 
-    $_ | Out-File $LogFile
+# ----------------------------
+# Export Summary
+# ----------------------------
 
-    Write-Host ""
-    Write-Host "FAILED" -ForegroundColor Red
-    Write-Host $_.Exception.Message
-}
+$Results | Export-Csv `
+    -Path $ReportFile `
+    -NoTypeInformation
+
+# ----------------------------
+# Statistics
+# ----------------------------
+
+$Success = ($Results | Where-Object Status -eq "Success").Count
+$Failed  = ($Results | Where-Object Status -eq "Failed").Count
+
+Write-Host ""
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "Execution Completed"
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "Success : $Success" -ForegroundColor Green
+Write-Host "Failed  : $Failed" -ForegroundColor Red
+Write-Host "Report  : $ReportFile"
+Write-Host "Logs    : $LogFolder"
+Write-Host "==========================================" -ForegroundColor Cyan
