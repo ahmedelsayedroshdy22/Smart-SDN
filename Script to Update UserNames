@@ -73,7 +73,7 @@ try {
         -s `
         -k `
         -X PUT `
-        "http://$IP/api/v1/files/cliScript/incremental" `
+        "https://$IP/api/v1/files/cliScript/incremental" `
         -H "Authorization: Basic $cred_encoded" `
         -F "file=@$CliFile;type=application/octet-stream"
 
@@ -89,7 +89,7 @@ try {
         -s `
         -k `
         -X POST `
-        "http://$IP/api/v1/actions/saveConfiguration" `
+        "https://$IP/api/v1/actions/saveConfiguration" `
         -H "Authorization: Basic $cred_encoded" `
         -H "Content-Type: application/json" `
         -d "{}"
