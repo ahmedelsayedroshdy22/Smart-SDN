@@ -65,12 +65,14 @@ $CreateResult = .\curl.exe `
 # SAVE CONFIGURATION
 # =================================
 
-$SaveResult = .\curl.exe `
-    -s `
-    -k `
-    -X POST `
-    "https://$IP/api/v1/actions/saveConfiguration" `
-    -H "Authorization: Basic $cred_encoded"
+$SaveResponse = curl.exe `
+            -s `
+            -k `
+            -X POST `
+            "https://$IP/api/v1/actions/saveConfiguration" `
+            -H "Authorization: Basic $cred_encoded" `
+            -H "Content-Type: application/json" `
+            -d "{}"
 
 # =================================
 # LOG RESULTS
