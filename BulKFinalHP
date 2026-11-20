@@ -1,0 +1,175 @@
+
+# =================================
+# CONFIGURATION
+# =================================
+
+$IPsFile      = ".\IPs.txt"
+
+$ApiUser      = "puso7259"
+$ApiPassword  = "Rw49iuMzJm"
+
+$NewUser      = "HPIUser"
+$NewPassword  = "HPI@User@123"
+
+# =================================
+# AUTHENTICATION
+# =================================
+
+$cred = "$ApiUser`:$ApiPassword"
+
+$cred_encoded = [Convert]::ToBase64String(
+    [Text.Encoding]::ASCII.GetBytes($cred)
+)
+
+# =================================
+# LOGGING
+# =================================
+
+$TimeStamp = Get-Date -Format "yyyyMMdd_HHmmss"
+
+$LogFolder = ".\Logs"
+
+New-Item -ItemType Directory -Path $LogFolder -Force | Out-Null
+
+# =================================
+# LOAD IP ADDRESSES
+# =================================
+
+$IPs = Get-Content -Path $IPsFile |
+       Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+Write-Host ""
+Write-Host "=================================" -ForegroundColor Cyan
+Write-Host "AudioCodes Bulk User Creation" -ForegroundColor Cyan
+Write-Host "=================================" -ForegroundColor Cyan
+Write-Host "Total SBCs: $($IPs.Count)"
+Write-Host ""
+
+# =================================
+# PROCESS EACH SBC
+# =================================
+
+foreach ($IP in $IPs)
+{
+    $IP = $IP.Trim()
+
+    Write-Host ""
+    Write-Host "=================================" -ForegroundColor Cyan
+    Write-Host "Processing SBC: $IP" -ForegroundColor Yellow
+    Write-Host "=================================" -ForegroundColor Cyan
+
+    $LogFile = "$LogFolder\$($IP)_$TimeStamp.log"
+
+    $CliFile = $null
+
+    try
+    {
+        # =================================
+        # CLI SCRIPT
+        # =================================
+
+        $cliScript = @"
+configure system
+user $NewUser
+privilege Monitor
+status valid
+password-age 0
+password $NewPassword
+exit
+"@
+
+        $CliFile = "$env:TEMP\user_$($IP).cli"
+
+        $cliScript | Set-Content -Path $CliFile -Encoding Ascii
+
+        # =================================
+        # CREATE USER
+        # =================================
+
+        Write-Host "Creating user $NewUser on $IP..." -ForegroundColor Cyan
+
+        $CreateResult = curl.exe `
+            -s `
+            -k `
+            -X PUT `
+            "https://$IP/api/v1/files/cliScript/incremental" `
+            -H "Authorization: Basic $cred_encoded" `
+            -F "file=@$CliFile;type=application/octet-stream"
+
+        # =================================
+        # SAVE CONFIGURATION
+        # =================================
+
+        Write-Host "Saving configuration on $IP..." -ForegroundColor Cyan
+
+        $SaveResponse = curl.exe `
+            -s `
+            -k `
+            -X POST `
+            "https://$IP/api/v1/actions/saveConfiguration" `
+            -H "Authorization: Basic $cred_encoded" `
+            -H "Content-Type: application/json" `
+            -d "{}"
+
+        # =================================
+        # LOG RESULTS
+        # =================================
+
+@"
+=================================
+Time      : $(Get-Date)
+Device    : $IP
+User      : $NewUser
+=================================
+
+CREATE USER RESPONSE
+--------------------
+$CreateResult
+
+SAVE CONFIG RESPONSE
+--------------------
+$SaveResult
+
+"@ | Out-File -FilePath $LogFile -Encoding UTF8
+
+        Write-Host "User Creation Response:" -ForegroundColor Green
+        $CreateResult
+
+        Write-Host "Save Configuration Response:" -ForegroundColor Green
+        $SaveResponse
+
+        Write-Host "Completed: $IP" -ForegroundColor Green
+    }
+    catch
+    {
+        $ErrorMessage = $_.Exception.Message
+
+        @"
+=================================
+Time      : $(Get-Date)
+Device    : $IP
+ERROR     : $ErrorMessage
+=================================
+"@ | Out-File -FilePath $LogFile -Encoding UTF8
+
+        Write-Host "FAILED: $IP - $ErrorMessage" -ForegroundColor Red
+    }
+    finally
+    {
+        if ($CliFile -and (Test-Path -LiteralPath $CliFile))
+        {
+            Remove-Item -LiteralPath $CliFile -Force
+        }
+    }
+}
+
+# =================================
+# COMPLETED
+# =================================
+
+Write-Host ""
+Write-Host "=================================" -ForegroundColor Cyan
+Write-Host "BULK EXECUTION COMPLETED" -ForegroundColor Green
+Write-Host "Total SBCs: $($IPs.Count)"
+Write-Host "Logs Folder: $LogFolder"
+Write-Host "=================================" -ForegroundColor Cyan
