@@ -93,8 +93,8 @@ exit
             -k `
             -X PUT `
             "https://$IP/api/v1/files/cliScript/incremental" `
-            -H "Authorization: Basic $cred_encoded" `
-            -F "file=@$CliFile;type=application/octet-stream"
+            -H "Authorization: Basic $cred_encoded" --connect-timeout 15 -F "file=@$CliFile;type=application/octet-stream"
+            
 
         # =================================
         # SAVE CONFIGURATION
@@ -107,9 +107,7 @@ exit
             -k `
             -X POST `
             "https://$IP/api/v1/actions/saveConfiguration" `
-            -H "Authorization: Basic $cred_encoded" `
-            -H "Content-Type: application/json" `
-            -d "{}"
+            -H "Authorization: Basic $cred_encoded" --connect-timeout 15  -H "Content-Type: application/json" -d "{}"
 
         # =================================
         # LOG RESULTS
