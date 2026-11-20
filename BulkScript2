@@ -7,8 +7,8 @@ $IP           = "100.65.139.120"
 $ApiUser      = "puso7259"
 $ApiPassword  = "Rw49iuMzJm"
 
-$NewUser      = "Owida"
-$NewPassword  = "12345"
+$NewUser      = "HPIUser"
+$NewPassword  = "HPI@User@123"
 
 # =================================
 # AUTHENTICATION
